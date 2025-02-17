@@ -38,10 +38,16 @@ import { SocialLoginButtons } from "./SocialLoginButtons";
 
 type Props = {
   defaultEmail?: string;
+  authToken?: string;
+  apiHost?: string;
+  tenantId?: string;
 };
 
 export const SignInForm = ({
   defaultEmail,
+  authToken,
+  apiHost,
+  tenantId,
 }: Props & HTMLChakraProps<"form">) => {
   const { t } = useTranslate();
   const router = useRouter();
@@ -150,13 +156,18 @@ export const SignInForm = ({
       </Text>
     );
   return (
-    <Stack spacing="6" w="330px">
+    <Stack spacing="4" w="330px">
       {!isMagicCodeSent && (
         <>
-          <SocialLoginButtons providers={providers} />
+          <SocialLoginButtons
+            providers={providers}
+            authToken={authToken}
+            apiHost={apiHost}
+            tenantId={tenantId}
+          />
           {providers?.email && (
             <>
-              <DividerWithText>{t("auth.orEmailLabel")}</DividerWithText>
+              <DividerWithText mt="6">{t("auth.orEmailLabel")}</DividerWithText>
               <HStack as="form" onSubmit={handleEmailSubmit}>
                 <Input
                   name="email"
@@ -187,7 +198,7 @@ export const SignInForm = ({
             <HStack>
               <AlertIcon />
               <Stack spacing={1}>
-                <Text fontWeight="medium">{t("auth.magicLink.title")}</Text>
+                <Text fontWeight="semibold">{t("auth.magicLink.title")}</Text>
                 <Text fontSize="sm">{t("auth.magicLink.description")}</Text>
               </Stack>
             </HStack>

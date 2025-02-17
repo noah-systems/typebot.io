@@ -4,7 +4,8 @@ import { AzureAdLogo } from "@/components/logos/AzureAdLogo";
 import { FacebookLogo } from "@/components/logos/FacebookLogo";
 import { GitlabLogo } from "@/components/logos/GitlabLogo";
 import { KeycloackLogo } from "@/components/logos/KeycloakLogo";
-import { Button, Stack } from "@chakra-ui/react";
+import { sanitizeUrl } from "@braintree/sanitize-url";
+import { Button, Stack, Text } from "@chakra-ui/react";
 import { useTranslate } from "@tolgee/react";
 import { omit } from "@typebot.io/lib/utils";
 import type { BuiltInProviderType } from "next-auth/providers/index";
@@ -15,21 +16,57 @@ import {
   useSession,
 } from "next-auth/react";
 import { useRouter } from "next/router";
+import { useQueryState } from "nuqs";
 import { stringify } from "qs";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 type Props = {
+  authToken?: string;
+  apiHost?: string;
+  tenantId?: string;
   providers:
     | Record<LiteralUnion<BuiltInProviderType, string>, ClientSafeProvider>
     | undefined;
 };
 
-export const SocialLoginButtons = ({ providers }: Props) => {
+export const SocialLoginButtons = ({
+  providers,
+  authToken,
+  apiHost,
+  tenantId,
+}: Props) => {
   const { t } = useTranslate();
   const { query } = useRouter();
   const { status } = useSession();
+  const router = useRouter();
+  const [redirectPath] = useQueryState("redirectPath");
   const [authLoading, setAuthLoading] =
     useState<LiteralUnion<BuiltInProviderType, string>>();
+
+  const handleCredentialsSignIn = async (provider: string) => {
+    setAuthLoading(provider);
+    try {
+      const response = await signIn("credentials", {
+        authToken,
+        apiHost,
+        tenantId,
+        redirect: false,
+        callbackUrl:
+          query.callbackUrl?.toString() ??
+          `/typebots?${stringify(omit(query, "error", "callbackUrl"))}`,
+      });
+
+      if (response?.ok) {
+        router.replace(redirectPath ? sanitizeUrl(redirectPath) : "/typebots");
+      } else {
+        return;
+      }
+    } catch (error) {
+      console.error("[ERRO AO TENTAR AUTENTICAR]:", error);
+      return;
+    }
+    setTimeout(() => setAuthLoading(undefined), 3000);
+  };
 
   const handleSignIn = async (provider: string) => {
     setAuthLoading(provider);
@@ -40,6 +77,14 @@ export const SocialLoginButtons = ({ providers }: Props) => {
     });
     setTimeout(() => setAuthLoading(undefined), 3000);
   };
+
+  useEffect(() => {
+    if (providers?.credentials) {
+      handleCredentialsSignIn("credentials");
+    }
+  }, [providers]);
+
+  const handleCredentialsClick = () => handleCredentialsSignIn("credentials");
 
   const handleGitHubClick = () => handleSignIn("github");
 
@@ -57,6 +102,9 @@ export const SocialLoginButtons = ({ providers }: Props) => {
 
   return (
     <Stack>
+      {providers?.credentials && (
+        <Text>{t("auth.socialLogin.credentialsMessage.label")}</Text>
+      )}
       {providers?.github && (
         <Button
           leftIcon={<GithubIcon />}

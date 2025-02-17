@@ -9,7 +9,6 @@ import { WorkspaceRole } from "@typebot.io/prisma/enum";
 import type { Prisma } from "@typebot.io/prisma/types";
 import type { TelemetryEvent } from "@typebot.io/telemetry/schemas";
 import { trackEvents } from "@typebot.io/telemetry/trackEvents";
-import ky from "ky";
 import type { Account, Awaitable, User } from "next-auth";
 
 // Forked from https://github.com/nextauthjs/adapters/blob/main/packages/prisma/src/index.ts
@@ -51,7 +50,7 @@ type Adapter<WithVerificationToken = boolean> = DefaultAdapter &
       }
     : {});
 interface DefaultAdapter {
-  createUser: (user: Omit<AdapterUser, "id">) => Awaitable<AdapterUser>;
+  createUser: (user: AdapterUser) => Awaitable<AdapterUser>;
   getUser: (id: string) => Awaitable<AdapterUser | null>;
   getUserByEmail: (email: string) => Awaitable<AdapterUser | null>;
   /** Using the provider id and the id of the user for a specific account, get the user. */
@@ -100,9 +99,10 @@ interface DefaultAdapter {
 export function customAdapter(p: Prisma.PrismaClient): Adapter {
   return {
     createUser: async (data) => {
-      if (!data.email)
+      if (!data.email) {
         throw Error("Provider did not forward email but it is required");
-      const user = { id: createId(), email: data.email as string };
+      }
+      const user = { id: data?.id || createId(), email: data.email as string };
       const { invitations, workspaceInvitations } = await getNewUserInvitations(
         p,
         user.email,
@@ -112,9 +112,9 @@ export function customAdapter(p: Prisma.PrismaClient): Adapter {
         env.ADMIN_EMAIL?.every((email) => email !== user.email) &&
         invitations.length === 0 &&
         workspaceInvitations.length === 0
-      )
+      ) {
         throw Error("New users are forbidden");
-
+      }
       const newWorkspaceData = {
         name: data.name ? `${data.name}'s workspace` : `My workspace`,
         plan: parseWorkspaceDefaultPlan(data.email),
@@ -150,23 +150,17 @@ export function customAdapter(p: Prisma.PrismaClient): Adapter {
           name: "Workspace created",
           workspaceId: newWorkspaceId,
           userId: createdUser.id,
+          data: newWorkspaceData,
         });
       }
       events.push({
         name: "User created",
         userId: createdUser.id,
+        data: {
+          email: data.email,
+          name: data.name ? (data.name as string).split(" ")[0] : undefined,
+        },
       });
-      if (env.USER_CREATED_WEBHOOK_URL) {
-        try {
-          await ky.post(env.USER_CREATED_WEBHOOK_URL, {
-            json: {
-              email: createdUser.email,
-            },
-          });
-        } catch (e) {
-          console.error("Failed to call user created webhook", e);
-        }
-      }
       await trackEvents(events);
       if (invitations.length > 0)
         await convertInvitationsToCollaborations(p, user, invitations);

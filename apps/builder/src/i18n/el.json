@@ -59,6 +59,7 @@
   "auth.socialLogin.customButton.label": "Συνεχίστε με {customProviderName}",
   "auth.socialLogin.facebookButton.label": "Συνεχίστε με Facebook",
   "auth.socialLogin.githubButton.label": "Συνεχίστε με GitHub",
+  "auth.socialLogin.credentialsMessage.label": "Το σύστημα φορτώνει τον βοηθό chatbot. Εάν αυτό το μήνυμα παραμείνει ορατό για περισσότερη από 1 λεπτό, παρακαλούμε επικοινωνήστε με τον διαχειριστή του συστήματος.",
   "auth.socialLogin.gitlabButton.label": "Συνεχίστε με {gitlabProviderName}",
   "auth.socialLogin.googleButton.label": "Συνεχίστε με Google",
   "auth.socialLogin.keycloakButton.label": "Συνέχεια με το Keycloak",

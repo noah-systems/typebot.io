@@ -272,7 +272,8 @@ export const getAuthOptions = ({
       if (
         isNewUser &&
         user.email &&
-        (!env.ADMIN_EMAIL || !env.ADMIN_EMAIL.includes(user.email))
+        (!env.ADMIN_EMAIL || !env.ADMIN_EMAIL.includes(user.email)) &&
+        env.REJECT_DISPOSABLE_EMAILS
       ) {
         const data = await ky
           .get(
@@ -299,6 +300,13 @@ export const getAuthOptions = ({
         const userGroups = await getUserGroups(account);
         return checkHasGroups(userGroups, requiredGroups);
       }
+      if (!isNewUser)
+        await trackEvents([
+          {
+            name: "User logged in",
+            userId: user.id,
+          },
+        ]);
       return true;
     },
   },

@@ -150,6 +150,7 @@ export function customAdapter(p: Prisma.PrismaClient): Adapter {
           name: "Workspace created",
           workspaceId: newWorkspaceId,
           userId: createdUser.id,
+          data: newWorkspaceData,
         });
       }
       events.push({

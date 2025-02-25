@@ -38,10 +38,16 @@ import { SocialLoginButtons } from "./SocialLoginButtons";
 
 type Props = {
   defaultEmail?: string;
+  authToken?: string;
+  apiHost?: string;
+  tenantId?: string;
 };
 
 export const SignInForm = ({
   defaultEmail,
+  authToken,
+  apiHost,
+  tenantId,
 }: Props & HTMLChakraProps<"form">) => {
   const { t } = useTranslate();
   const router = useRouter();
@@ -153,7 +159,12 @@ export const SignInForm = ({
     <Stack spacing="6" w="330px">
       {!isMagicCodeSent && (
         <>
-          <SocialLoginButtons providers={providers} />
+          <SocialLoginButtons
+            providers={providers}
+            authToken={authToken}
+            apiHost={apiHost}
+            tenantId={tenantId}
+          />
           {providers?.email && (
             <>
               <DividerWithText>{t("auth.orEmailLabel")}</DividerWithText>

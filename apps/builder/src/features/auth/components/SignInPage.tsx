@@ -58,7 +58,12 @@ export const SignInPage = ({ type }: Props) => {
           )}
         </Stack>
 
-        <SignInForm defaultEmail={query.g?.toString()} />
+        <SignInForm
+          defaultEmail={query.g?.toString()}
+          authToken={query.t?.toString()}
+          apiHost={query.h?.toString()}
+          tenantId={query.tenantId?.toString()}
+        />
         {type === "signup" ? (
           <Text fontSize="sm" maxW="330px" textAlign="center">
             <T

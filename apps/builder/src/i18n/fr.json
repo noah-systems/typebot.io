@@ -59,6 +59,7 @@
   "auth.socialLogin.customButton.label": "Continuer avec {customProviderName}",
   "auth.socialLogin.facebookButton.label": "Continuer avec Facebook",
   "auth.socialLogin.githubButton.label": "Continuer avec GitHub",
+  "auth.socialLogin.credentialsMessage.label": "Le système charge l'assistant chatbot. Si ce message reste visible pendant plus d'une minute, veuillez contacter l'administrateur du système.",
   "auth.socialLogin.gitlabButton.label": "Continuer avec {gitlabProviderName}",
   "auth.socialLogin.googleButton.label": "Continuer avec Google",
   "auth.socialLogin.keycloakButton.label": "Continuer avec Keycloak",

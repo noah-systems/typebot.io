@@ -13,7 +13,9 @@ import Redis from "ioredis";
 import ky from "ky";
 import type { NextApiRequest, NextApiResponse } from "next";
 import NextAuth, { type Account, type AuthOptions } from "next-auth";
+import type { AdapterUser } from "next-auth/adapters";
 import AzureADProvider from "next-auth/providers/azure-ad";
+import CredentialsProvider from "next-auth/providers/credentials";
 import EmailProvider from "next-auth/providers/email";
 import FacebookProvider from "next-auth/providers/facebook";
 import GitHubProvider from "next-auth/providers/github";
@@ -23,9 +25,55 @@ import type { Provider } from "next-auth/providers/index";
 import KeycloakProvider from "next-auth/providers/keycloak";
 import { customAdapter } from "../../../features/auth/api/customAdapter";
 
+const customDataAdapter = customAdapter(prisma);
+
 const providers: Provider[] = [];
 
 let emailSignInRateLimiter: Ratelimit | undefined;
+
+providers.push(
+  CredentialsProvider({
+    name: "credentials",
+    credentials: {
+      authToken: { label: "AuthToken", type: "text" },
+      apiHost: { label: "APIHost", type: "text" },
+      tenantId: { label: "TenantId", type: "text" },
+    },
+    async authorize(credentials) {
+      if (credentials?.authToken !== env.TYPEBOT_CODE) {
+        return null;
+      }
+
+      const host = credentials?.apiHost;
+      try {
+        const response = await ky.get(`${host}/api/typebot/client`, {
+          headers: {
+            tenantId: credentials?.tenantId,
+          },
+        });
+        const user = (await response.json()) as Prisma.User;
+
+        const find = await customDataAdapter.getUser(user.id);
+
+        if (!find) {
+          const userAdater = await customDataAdapter.createUser({
+            ...(user as AdapterUser),
+          });
+
+          user.id = userAdater.id;
+          user.name = userAdater.name || null;
+          user.email = userAdater.email;
+          user.image = userAdater.image || null;
+        }
+
+        return user;
+      } catch (error) {
+        console.error("Erro ao fazer a requisição:", error);
+        return null;
+      }
+    },
+  }),
+);
 
 if (env.REDIS_URL) {
   const redis = new Redis(env.REDIS_URL);
@@ -172,11 +220,11 @@ export const getAuthOptions = ({
 }: {
   restricted?: "rate-limited";
 }): AuthOptions => ({
-  adapter: customAdapter(prisma),
+  adapter: customDataAdapter,
   secret: env.ENCRYPTION_SECRET,
   providers,
   session: {
-    strategy: "database",
+    strategy: "jwt",
   },
   pages: {
     signIn: "/signin",
@@ -198,9 +246,20 @@ export const getAuthOptions = ({
     },
   },
   callbacks: {
-    session: async ({ session, user }) => {
-      const userFromDb = user as Prisma.User;
-      await updateLastActivityDate(userFromDb);
+    async jwt({ token, user, account, profile, isNewUser }) {
+      if (account) {
+        token.accessToken = account.access_token;
+        token.id = profile?.id;
+      }
+      return token;
+    },
+    async redirect({ url, baseUrl }) {
+      return baseUrl;
+    },
+    session: async ({ session, user, token }) => {
+      session.user.id = token.sub;
+      const userFromDb = session?.user as Prisma.User;
+      // await updateLastActivityDate(userFromDb);
       return {
         ...session,
         user: userFromDb,
@@ -292,6 +351,12 @@ const updateLastActivityDate = async (user: Prisma.User) => {
       where: { id: user.id },
       data: { lastActivityAt: new Date() },
     });
+    await trackEvents([
+      {
+        name: "User logged in",
+        userId: user.id,
+      },
+    ]);
   }
 };
 

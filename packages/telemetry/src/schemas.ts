@@ -20,10 +20,6 @@ const typebotEvent = workspaceEvent.merge(
 const workspaceCreatedEventSchema = workspaceEvent.merge(
   z.object({
     name: z.literal("Workspace created"),
-    data: z.object({
-      name: z.string().optional(),
-      plan: z.nativeEnum(Plan),
-    }),
   }),
 );
 

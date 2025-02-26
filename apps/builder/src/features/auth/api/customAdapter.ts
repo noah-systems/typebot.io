@@ -151,16 +151,11 @@ export function customAdapter(p: Prisma.PrismaClient): Adapter {
           name: "Workspace created",
           workspaceId: newWorkspaceId,
           userId: createdUser.id,
-          data: newWorkspaceData,
         });
       }
       events.push({
         name: "User created",
         userId: createdUser.id,
-        data: {
-          email: data.email,
-          name: data.name ? (data.name as string).split(" ")[0] : undefined,
-        },
       });
       if (env.USER_CREATED_WEBHOOK_URL) {
         try {

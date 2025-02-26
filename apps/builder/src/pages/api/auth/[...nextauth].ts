@@ -249,7 +249,6 @@ export const getAuthOptions = ({
     async jwt({ token, user, account, profile, isNewUser }) {
       if (account) {
         token.accessToken = account.access_token;
-        token.id = profile?.id;
       }
       return token;
     },
@@ -257,7 +256,7 @@ export const getAuthOptions = ({
       return baseUrl;
     },
     session: async ({ session, user, token }) => {
-      session.user.id = token.sub;
+      (session.user as any).id = token.sub;
       const userFromDb = session?.user as Prisma.User;
       // await updateLastActivityDate(userFromDb);
       return {
